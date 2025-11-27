@@ -1,0 +1,22 @@
+{
+  "name": "Neon PWA Uhr",
+  "short_name": "NeonUhr",
+  "description": "Offline-fähige Neon-Uhr — Hoch- und Querformat, Installierbar als PWA.",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#050014",
+  "theme_color": "#050014",
+  "icons": [
+    {
+      "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='192' height='192' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='12' fill='%23050014'/%3E%3Ctext x='50%25' y='55%25' font-family='Segoe UI, Roboto, Arial' font-size='22' text-anchor='middle' fill='%23FE019A' font-weight='700'%3E%3A%3C/text%3E%3C/svg%3E",
+      "sizes": "192x192",
+      "type": "image/svg+xml"
+    },
+    {
+      "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='512' height='512' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='12' fill='%23050014'/%3E%3Ctext x='50%25' y='55%25' font-family='Segoe UI, Roboto, Arial' font-size='30' text-anchor='middle' fill='%2308f7fe' font-weight='700'%3E%3A%3C/text%3E%3C/svg%3E",
+      "sizes": "512x512",
+      "type": "image/svg+xml"
+    }
+  ]
+}

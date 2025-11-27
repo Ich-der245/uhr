@@ -1,0 +1,370 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no" />
+  <title>Neon PWA Uhr</title>
+
+  <!-- Manifest -->
+  <link rel="manifest" href="/manifest.json">
+
+  <!-- Theme & mobile -->
+  <meta name="theme-color" content="#050014">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+
+  <!-- Styles: Neon look, responsive for portrait/landscape -->
+  <style>
+    :root{
+      --bg:#050014;
+      --neon1:#08f7fe;
+      --neon2:#fe019a;
+      --accent:#9b5cff;
+      --glass: rgba(255,255,255,0.04);
+      --radius:18px;
+      --shadow-strong: 0 0 30px rgba(143, 0, 255, 0.25), 0 0 80px rgba(8,247,254,0.06);
+      --font-family: "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    }
+    html,body{
+      height:100%;
+      margin:0;
+      background: radial-gradient( circle at 10% 10%, rgba(8,247,254,0.03), transparent 5%),
+                  radial-gradient( circle at 90% 90%, rgba(254,1,154,0.02), transparent 10%),
+                  var(--bg);
+      color: #ffffff;
+      font-family: var(--font-family);
+      -webkit-font-smoothing:antialiased;
+      -moz-osx-font-smoothing:grayscale;
+    }
+
+    /* App shell */
+    .app {
+      box-sizing:border-box;
+      height:100%;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding:12px;
+      gap:12px;
+    }
+
+    /* Clock card */
+    .clock {
+      width: min(980px, 95vw);
+      height: min(420px, 88vh);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      position:relative;
+      border-radius: var(--radius);
+      background:
+        linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
+      box-shadow: var(--shadow-strong);
+      border: 1px solid rgba(255,255,255,0.04);
+      padding: 18px;
+      overflow:hidden;
+    }
+
+    /* Neon grid background lines */
+    .clock::before{
+      content:"";
+      position:absolute;
+      inset:0;
+      background-image:
+        linear-gradient(90deg, rgba(255,255,255,0.02) 1px, transparent 1px),
+        linear-gradient(0deg, rgba(255,255,255,0.012) 1px, transparent 1px);
+      background-size: 60px 60px, 60px 60px;
+      opacity:0.28;
+      mix-blend-mode:overlay;
+      pointer-events:none;
+      transform: scale(1.06);
+    }
+
+    .display {
+      position:relative;
+      z-index:2;
+      text-align:center;
+      width:100%;
+      user-select:none;
+      -webkit-user-select:none;
+    }
+
+    .time {
+      font-variant-numeric: tabular-nums;
+      font-weight:700;
+      line-height:1;
+      letter-spacing: -0.02em;
+      text-shadow:
+        0 0 10px rgba(155,92,255,0.8),
+        0 0 28px rgba(8,247,254,0.12),
+        0 6px 20px rgba(0,0,0,0.6);
+      color: linear-gradient(#fff,#fff);
+      margin:0;
+    }
+
+    .date {
+      margin-top:10px;
+      opacity:0.9;
+      font-weight:500;
+      font-size: clamp(12px, 1.5vw, 16px);
+      color: rgba(255,255,255,0.9);
+      text-shadow: 0 0 8px rgba(155,92,255,0.06);
+    }
+
+    /* Neon digit sizes adapt to screen/orientation */
+    /* Portrait: big vertical clock */
+    @media (orientation: portrait) {
+      .clock { height: 86vh; width: 96vw; border-radius: 14px; }
+      .time { font-size: clamp(48px, 16vw, 160px); }
+      .date { margin-top: 0.6rem; }
+      .clock .subinfo { margin-top:16px; }
+    }
+
+    /* Landscape: stretched layout */
+    @media (orientation: landscape) {
+      .clock { height: 80vh; width: 92vw; border-radius: 18px; }
+      .time { font-size: clamp(48px, 10vh, 120px); }
+      .date { margin-top: 0.3rem; }
+      .clock { display:flex; align-items:center; justify-content:center; }
+    }
+
+    /* small devices */
+    @media (max-width:420px) {
+      .time { letter-spacing: -0.03em; }
+    }
+
+    /* accent glow bar */
+    .glow-bar{
+      position:absolute;
+      left:0;
+      top:0;
+      width:100%;
+      height:6px;
+      background: linear-gradient(90deg, var(--neon1), var(--accent), var(--neon2));
+      filter: blur(6px);
+      opacity:0.6;
+      z-index:3;
+    }
+
+    /* Fullscreen button (unauffällig) */
+    .fs-btn{
+      position: absolute;
+      right: 12px;
+      bottom: 12px;
+      z-index:4;
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(255,255,255,0.06);
+      color: white;
+      padding:10px 12px;
+      border-radius: 999px;
+      font-size:14px;
+      backdrop-filter: blur(6px);
+      cursor:pointer;
+      display:flex;
+      align-items:center;
+      gap:8px;
+      transition: transform .15s ease, opacity .15s ease;
+      user-select:none;
+    }
+    .fs-btn:hover { transform: translateY(-4px); opacity:0.98; }
+
+    .hidden { display:none !important; }
+
+    /* small hint: install prompt badge (optional) */
+    .install-hint{
+      position:absolute;
+      left:12px;
+      bottom:12px;
+      z-index:4;
+      background: rgba(0,0,0,0.35);
+      color:#fff;
+      padding:8px 10px;
+      border-radius:10px;
+      font-size:13px;
+      border: 1px solid rgba(255,255,255,0.03);
+    }
+
+    /* tiny credits */
+    .credit {
+      position:absolute;
+      left:12px;
+      top:12px;
+      z-index:4;
+      font-size:12px;
+      opacity:0.7;
+      pointer-events:none;
+    }
+
+    /* neon colon blink */
+    .colon {
+      opacity:1;
+      transition: opacity .2s linear;
+    }
+    .blink { opacity:0.12; }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <div class="clock" id="clockCard" role="application" aria-label="Neon Uhr">
+      <div class="glow-bar" aria-hidden="true"></div>
+
+      <div class="display" id="display">
+        <h1 class="time" id="time" aria-live="polite">00:00:00</h1>
+        <div class="date" id="date">Montag, 1. Januar 1970</div>
+      </div>
+
+      <button id="fsBtn" class="fs-btn" title="Vollbild" aria-pressed="false">
+        <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+          <path fill="white" d="M7 14H5v5h5v-2H7v-3zm10 5h-3v2h5v-5h-2v3zM5 5v5h2V7h3V5H5zm14 0h-5v2h3v3h2V5z"/>
+        </svg>
+        Vollbild
+      </button>
+
+      <div class="install-hint" id="installHint" hidden>Zum Installieren: Menü → Auf Startbildschirm hinzufügen</div>
+      <div class="credit">Neon PWA Uhr</div>
+    </div>
+  </div>
+
+  <!-- Script: Uhrlogik, Vollbild, PWA install prompt and service worker registration -->
+  <script>
+    // --------- Time rendering ----------
+    const timeEl = document.getElementById('time');
+    const dateEl = document.getElementById('date');
+    const colonClass = 'colon';
+    const clockCard = document.getElementById('clockCard');
+
+    function two(n){ return n.toString().padStart(2,'0'); }
+
+    function updateTime(){
+      const now = new Date();
+      const hours = two(now.getHours());
+      const minutes = two(now.getMinutes());
+      const seconds = two(now.getSeconds());
+
+      // Build time string with span-wrapped colon to blink
+      const timeHTML = `${hours}<span class="colon" id="c1">:</span>${minutes}<span class="colon" id="c2">:</span>${seconds}`;
+      timeEl.innerHTML = timeHTML;
+
+      // Localized date in German (fallback if Intl not available)
+      try {
+        const opt = { weekday:'long', day:'numeric', month:'long', year:'numeric' };
+        dateEl.textContent = new Intl.DateTimeFormat('de-DE', opt).format(now);
+      } catch (e) {
+        const days = ['Sonntag','Montag','Dienstag','Mittwoch','Donnerstag','Freitag','Samstag'];
+        const months = ['Januar','Februar','März','April','Mai','Juni','Juli','August','September','Oktober','November','Dezember'];
+        dateEl.textContent = `${days[now.getDay()]}, ${now.getDate()}. ${months[now.getMonth()]} ${now.getFullYear()}`;
+      }
+    }
+
+    // Blink colon each second
+    function blinkColons(){
+      const c1 = document.getElementById('c1');
+      const c2 = document.getElementById('c2');
+      if(!c1 || !c2) return;
+      const visible = (new Date()).getSeconds() % 2 === 0;
+      if(visible){
+        c1.classList.remove('blink'); c2.classList.remove('blink');
+      } else {
+        c1.classList.add('blink'); c2.classList.add('blink');
+      }
+    }
+
+    updateTime();
+    setInterval(()=>{ updateTime(); blinkColons(); }, 1000);
+
+    // ---------- Fullscreen button behavior ----------
+    const fsBtn = document.getElementById('fsBtn');
+
+    async function enterFullscreen(){
+      try {
+        if (!document.fullscreenElement) {
+          await clockCard.requestFullscreen({navigationUI: "hide"});
+        } else {
+          await document.exitFullscreen();
+        }
+      } catch (err) {
+        console.error("Fullscreen-Fehler:", err);
+      }
+    }
+
+    // Toggle button text & hide/show
+    fsBtn.addEventListener('click', async (e) => {
+      e.preventDefault();
+      await enterFullscreen();
+    });
+
+    // Listen for fullscreen change: hide button when fullscreen, show again when not
+    document.addEventListener('fullscreenchange', () => {
+      const isFS = !!document.fullscreenElement;
+      fsBtn.setAttribute('aria-pressed', String(isFS));
+      if(isFS){
+        // hide button when fullscreen active
+        fsBtn.classList.add('hidden');
+      } else {
+        // restore button
+        fsBtn.classList.remove('hidden');
+      }
+    });
+
+    // Also handle vendor prefixes (older Android browsers)
+    document.addEventListener('webkitfullscreenchange', () => {
+      const isFS = !!document.webkitFullscreenElement;
+      if(isFS) fsBtn.classList.add('hidden'); else fsBtn.classList.remove('hidden');
+    });
+
+    // If pointer-based interaction enters fullscreen otherwise, ensure button state corrected
+    if (document.fullscreenElement) fsBtn.classList.add('hidden');
+
+    // ---------- PWA install prompt handling ----------
+    let deferredPrompt = null;
+    const installHint = document.getElementById('installHint');
+
+    window.addEventListener('beforeinstallprompt', (e) => {
+      // Prevent the mini-infobar from appearing on mobile
+      e.preventDefault();
+      deferredPrompt = e;
+      // show unobtrusive hint
+      installHint.hidden = false;
+      // optional: show toast or UI; user may use browser menu to install
+    });
+
+    // If user clicks install-hint we show prompt (accessible)
+    installHint.addEventListener('click', async () => {
+      if(!deferredPrompt) return;
+      deferredPrompt.prompt();
+      const choice = await deferredPrompt.userChoice;
+      deferredPrompt = null;
+      installHint.hidden = true;
+    });
+
+    // Hide hint after app installed
+    window.addEventListener('appinstalled', () => {
+      installHint.hidden = true;
+    });
+
+    // ---------- Service worker registration (for offline) ----------
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/sw.js')
+        .then(reg => console.log('ServiceWorker registered', reg))
+        .catch(err => console.warn('ServiceWorker registration failed', err));
+    } else {
+      console.warn('ServiceWorker nicht verfügbar');
+    }
+
+    // ---------- Accessibility: keyboard fullscreen via F key ----------
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'f' || e.key === 'F') {
+        enterFullscreen();
+      }
+    });
+
+    // ---------- Orientation handling: optional visual hint or layout tweak ----------
+    function applyOrientation() {
+      // Could adjust CSS classes or animations based on orientation if necessary.
+      // Keep for future extension.
+    }
+    window.addEventListener('orientationchange', applyOrientation);
+    applyOrientation();
+  </script>
+</body>
+</html>
